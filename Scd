@@ -1,0 +1,51 @@
+-- Creating target_table for SCD Type 2
+CREATE TABLE target_table (
+    CustomerID INT,
+    Title VARCHAR(50),
+    FIRSTNAME VARCHAR(50),
+    LASTNAME VARCHAR(50),
+    StartDate DATE,
+    EndDate DATE,
+    IsActive BOOLEAN
+);
+
+-- Creating source_table
+CREATE TABLE source_table (
+    CustomerID INT,
+    Title VARCHAR(50),
+    FIRSTNAME VARCHAR(50),
+    LASTNAME VARCHAR(50)
+);
+
+-- Inserting sample data into target_table
+INSERT INTO target_table VALUES
+    (1, 'Mr', 'John', 'Doe', '2022-01-01', '9999-12-31', 1),
+    (2, 'Mrs', 'Jane', 'Smith', '2022-01-01', '9999-12-31', 1);
+
+-- Inserting sample data into source_table
+INSERT INTO source_table VALUES
+    (1, 'Mr', 'John', 'Doe'),  -- Updated record for CustomerID = 1
+    (3, 'Dr', 'Alice', 'Johnson'); -- New record not present in target_table
+
+
+
+
+
+
+spark.sql("""
+    MERGE INTO target_table AS target
+    USING source_table AS source
+    ON target.CustomerID = source.CustomerID
+    WHEN MATCHED THEN
+        UPDATE SET
+            target.Title = source.Title,
+            target.FIRSTNAME = source.FIRSTNAME,
+            target.LASTNAME = source.LASTNAME,
+            target.EndDate = current_date(),
+            target.IsActive = 0
+        INSERT (CustomerID, Title, FIRSTNAME, LASTNAME, StartDate, EndDate, IsActive)
+        VALUES (source.CustomerID, source.Title, source.FIRSTNAME, source.LASTNAME, current_date(), '9999-12-31', 1)
+    WHEN NOT MATCHED THEN
+        INSERT (CustomerID, Title, FIRSTNAME, LASTNAME, StartDate, EndDate, IsActive)
+        VALUES (source.CustomerID, source.Title, source.FIRSTNAME, source.LASTNAME, current_date(), '9999-12-31', 1)
+""")
